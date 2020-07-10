@@ -1,0 +1,13 @@
+<launch>  
+
+  <node pkg = "franka_raspicam" type = "franka_images.py" name = "franka_images" output="screen"/>
+    <param name="dir1" value="$(find franka_raspicam)/src/franka_dataset/images/"/>
+
+
+  <node pkg="franka_raspicam" type="collection.py" name="collection" output="screen"/>
+    <param name="dir2" value="$(find franka_raspicam)/src/franka_dataset/labels/"/>
+  </node>
+
+</launch>
+
+
