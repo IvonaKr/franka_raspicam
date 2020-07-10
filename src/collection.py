@@ -12,7 +12,7 @@ import geometry_msgs.msg
 from math import pi
 from std_msgs.msg import String, Bool
 from moveit_commander.conversions import pose_to_list
-#from franka_control.msg import ErrorRecoveryAction, ErrorRecoveryActionGoal
+from franka_control.msg import ErrorRecoveryAction, ErrorRecoveryActionGoal
 import pickle
 
 def all_close(goal, actual, tolerance):
@@ -163,9 +163,9 @@ class dataCollection(object):
     group_name = "panda_arm"
     group = moveit_commander.MoveGroupCommander(group_name)
 
-    #self.error_recovery_pub = rospy.Publisher('/franka_control/error_recovery/goal', 
-    #                                                ErrorRecoveryActionGoal, 
-    #                                               queue_size=1)
+    self.error_recovery_pub = rospy.Publisher('/franka_control/error_recovery/goal', 
+                                                   ErrorRecoveryActionGoal, 
+                                                  queue_size=1)
 
     self.start_recording_pub = rospy.Publisher("/record_start", Bool, queue_size=1)
     self.stop_recording_pub = rospy.Publisher("/record_stop", Bool, queue_size=1)
@@ -209,7 +209,7 @@ class dataCollection(object):
 
   def execute_plan(self, plan):
     group = self.group
-    return group.execute(plan, wait=False)
+    return group.execute(plan, wait=True)
 
   def plan_to_pose(self, p, q):
 
@@ -241,7 +241,7 @@ class dataCollection(object):
 
   def loops(self, yaws, z_levels, z_step = 0.001, reps = 0):
 
-    #err_rec_msg = ErrorRecoveryActionGoal()
+    err_rec_msg = ErrorRecoveryActionGoal()
     msg_true = Bool()
     msg_true.data = True
 
@@ -268,9 +268,11 @@ class dataCollection(object):
 
             success_u = False
             success_u = self.plan_to_pose(pos_up, q)
+
+
             print(success_u)
             while (success_u == False):
-                #self.error_recovery_pub.publish(err_rec_msg)
+                self.error_recovery_pub.publish(err_rec_msg)
                 time.sleep(0.2)
                 success_u = self.plan_to_pose(pos_up, q)
                 time.sleep(0.4)
@@ -287,7 +289,7 @@ class dataCollection(object):
                 delta_z = - (z_step * iz)
                 pos_down.z = pos_up.z + delta_z - 0.03
                 
-                print(pos_down.z)
+                # print(pos_down.z)
 
                 rep = 0
                 fail = False
@@ -309,7 +311,7 @@ class dataCollection(object):
                     fail = not success_u or not success_d
 
                     if (fail == True):
-                        #self.error_recovery_pub.publish(err_rec_msg)
+                        self.error_recovery_pub.publish(err_rec_msg)
                         time.sleep(0.2)
                         self.go_to_pose(pos_up, q)
                         time.sleep(0.4)
@@ -325,10 +327,8 @@ class dataCollection(object):
                     time.sleep(0.1)
                     self.stop_recording_pub.publish(msg_true)
                     
-                    #outFolder = "/home/ivan/diplomski_ws/src/raspicam_features/src/franka/labels/"
-                    #outFolder = /home/ivan/diplomski_ws/src/franka_raspicam/src/franka_dataset/labels/"
+                    outFolder = "/home/franka/ivona_dipl/labels/"
 
-                    outFolder = rospy.get_param('~dir2')
                     #print('ovo je yaw')
                     #print(yaw)
                     #print('ovo je yaw_')
@@ -364,20 +364,31 @@ def main():
     pose_start.orientation.y = q.y
     pose_start.orientation.z = q.z
     pose_start.orientation.w = q.w
+
     plan, fraction = experiment.group.compute_cartesian_path([pose_start],   # waypoints to follow
                                        0.01,        # eef_step
                                        0.0)
     print("fraction:")
-    #print(fraction)
+    print(fraction)
     execute = raw_input("execute?")
     if (execute == 'y') or (execute == 'Y'):
         experiment.execute_plan(plan)
 
-    # print("Manually bring tactip above probe - pos-low")
-    # print("")
-    # execute = raw_input("ready?")
-    # if (execute == 'y') or (execute == 'Y'):
-    #     experiment.execute_plan(plan) 
+
+    print("Manually bring tactip above probe - pos-low")
+    print("")
+    execute = raw_input("ready?")
+    if (execute == 'y') or (execute == 'Y'):
+        pose_start = experiment.group.get_current_pose().pose
+        pose_start.orientation.x = q.x
+        pose_start.orientation.y = q.y
+        pose_start.orientation.z = q.z
+        pose_start.orientation.w = q.w
+
+        plan, fraction = experiment.group.compute_cartesian_path([pose_start],   # waypoints to follow
+                                           0.01,        # eef_step
+                                           0.0)
+        experiment.execute_plan(plan) 
 
 
     #yaws = [-40, -30, -20, -10, 0, 10, 20, 30, 40]  #ivona : ovo promijeni
@@ -386,11 +397,11 @@ def main():
     yaws = []
     for i in range(0,180,5):
        yaws.append(i)
-
+    yaws = [0]
 
     #yaws =  [0,90]
-    z_levels = 10 # kod mene 5mm/0.5mm = 10
-    reps = 4   #kolko istih slucajeva kuta i dubine zelim
+    z_levels = 2 # kod mene 5mm/0.5mm = 10
+    reps = 1   #kolko istih slucajeva kuta i dubine zelim
 
     z_step = 0.5e-3  #metri #za tolko se spusti dole, kod mene 0.5mm = 0.5e-3m
 

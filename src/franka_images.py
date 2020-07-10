@@ -37,9 +37,9 @@ class SavePictures():
         try:
             #outFolder = "/home/ivan/diplomski_ws/src/raspicam_features/src/franka/images/"
 
-            #outFolder = "/home/ivan/diplomski_ws/src/franka_raspicam/src/franka_dataset/images/"
+            outFolder = "/home/franka/ivona_dipl/images/"
 
-            outFolder = rospy.get_param('~dir1')
+            # outFolder = rospy.get_param('~dir1')
             
             self.frames_pom = np.array(self.frames)
             
